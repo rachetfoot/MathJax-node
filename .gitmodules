@@ -1,0 +1,6 @@
+[submodule "MathJax"]
+	path = MathJax
+	url = ../MathJax.git
+[submodule "jsdom"]
+	path = jsdom
+	url = ../jsdom-simple.git
