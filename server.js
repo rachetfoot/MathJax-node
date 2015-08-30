@@ -1,58 +1,35 @@
 var jackrabbit = require('jackrabbit');
-var queue = jackrabbit('amqp://localhost');
+var messageServer = process.env.RABBITMQ_BIGWIG_TX_URL || 'amqp://localhost';
+var queue = jackrabbit(messageServer);
 
 var mjAPI = require("./lib/mj-single.js");
 
-var argv = require("yargs")
-    .demand(0).strict()
-    .usage("Usage: server [options]",{
-      inline: {
-        boolean: true,
-        describe: "process as in-line TeX"
-      },
-      linebreaks: {
-        boolean: true,
-        describe: "perform automatic line-breaking"
-      },
-      dpi: {
-        default: 0,
-        describe: "dpi for image (0 = calculate automatically)"
-      },
-      font: {
-        default: "TeX",
-        describe: "web font to use"
-      },
-      ex: {
-        default: 8,
-        describe: "ex-size in pixels"
-      },
-      width: {
-        default: 100,
-        describe: "width of container in ex"
-      },
-      extensions: {
-        default: "color.js",
-        describe: "extra MathJax extensions e.g. 'Safe,TeX/noUndefined'"
-      }
-    })
-    .argv;
+var options = {
+  linebreaks: true,
+  dpi: 0,
+  font: "STIX",
+  ex: 8,
+  width: 100,
+  extensions: "color.js"
+};
 
-if (argv.font === "STIX") argv.font = "STIX-Web";
-mjAPI.config({MathJax: {SVG: {font: argv.font, blacker: 0}}, extensions: argv.extensions});
+if (options.font === "STIX") options.font = "STIX-Web";
+mjAPI.config({MathJax: {SVG: {font: options.font, blacker: 0}}, extensions: options.extensions});
 mjAPI.start();
 
-if (argv.dpi === 0) {argv.dpi = argv.ex * 16} // pixels properly sized
+if (options.dpi === 0) {options.dpi = options.ex * 16} // pixels properly sized
 
 function typeset(math, callback) {
   mjAPI.typeset({
     math: math,
-    format: ("NoDelims"),
-    svg: true, dpi: argv.dpi,
-    ex: argv.ex, width: argv.width,
-    linebreaks: argv.linebreaks
+    format: "NoDelims",
+    svg: true, dpi: options.dpi,
+    ex: options.ex, width: options.width,
+    linebreaks: options.linebreaks
   }, callback);
 }
 
+// Make sure we are fully initialized:
 typeset('$x$', function() {});
 
 queue.on('connected', function() {
@@ -60,10 +37,11 @@ queue.on('connected', function() {
 
   function onReady() {
     queue.handle('jobs.generatesvg', onJob);
+    console.log('Ready for jobs');
   }
 
   function onJob(job, ack) {
-    console.log('Received job: ' + job.body);
+    console.log('Received job: ' + job.math);
 
     function onTypeset(data) {
       if (!data.errors) {
@@ -73,6 +51,6 @@ queue.on('connected', function() {
       }
     }
 
-    typeset(job.body, onTypeset);
+    typeset(job.math, onTypeset);
   }
 });
