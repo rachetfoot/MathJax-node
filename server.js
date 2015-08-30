@@ -9,7 +9,7 @@ var options = {
   dpi: 0,
   font: "STIX",
   ex: 8,
-  width: 100,
+  width: 130,
   extensions: "color.js"
 };
 
