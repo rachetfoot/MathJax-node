@@ -21,7 +21,8 @@
         "jsdom": "3.1.1",
         "speech-rule-engine": "*",
         "yargs": "*",
-        "MathJax": "https://github.com/mathjax/MathJax/tarball/mathjax-node-2.5.1"
+        "MathJax": "https://github.com/mathjax/MathJax/tarball/mathjax-node-2.5.1",
+        "jackrabbit": "^3.0.9"
     },
-    "main": "./lib/mj-page.js"
+    "main": "server.js"
 }
