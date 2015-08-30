@@ -1,10 +1,10 @@
 var jackrabbit = require('jackrabbit');
 var queue = jackrabbit('amqp://localhost');
 
-var mjAPI = require("../lib/mj-single.js");
+var mjAPI = require("./lib/mj-single.js");
 
 var argv = require("yargs")
-    .demand(1).strict()
+    .demand(0).strict()
     .usage("Usage: server [options]",{
       inline: {
         boolean: true,
@@ -23,7 +23,7 @@ var argv = require("yargs")
         describe: "web font to use"
       },
       ex: {
-        default: 6,
+        default: 8,
         describe: "ex-size in pixels"
       },
       width: {
@@ -31,27 +31,29 @@ var argv = require("yargs")
         describe: "width of container in ex"
       },
       extensions: {
-        default: "",
+        default: "color.js",
         describe: "extra MathJax extensions e.g. 'Safe,TeX/noUndefined'"
       }
     })
     .argv;
 
 if (argv.font === "STIX") argv.font = "STIX-Web";
-mjAPI.config({MathJax: {SVG: {font: argv.font}}, extensions: argv.extensions});
+mjAPI.config({MathJax: {SVG: {font: argv.font, blacker: 0}}, extensions: argv.extensions});
 mjAPI.start();
 
 if (argv.dpi === 0) {argv.dpi = argv.ex * 16} // pixels properly sized
 
-function typeset(callback) {
+function typeset(math, callback) {
   mjAPI.typeset({
-    math: argv._[0],
-    format: (argv.inline ? "inline-TeX" : "TeX"),
+    math: math,
+    format: ("NoDelims"),
     svg: true, dpi: argv.dpi,
     ex: argv.ex, width: argv.width,
     linebreaks: argv.linebreaks
   }, callback);
 }
+
+typeset('$x$', function() {});
 
 queue.on('connected', function() {
   queue.create('jobs.generatesvg', { prefetch: 0, messageTtl: 1000}, onReady);
@@ -61,13 +63,13 @@ queue.on('connected', function() {
   }
 
   function onJob(job, ack) {
-    console.log('Received job: ' + job);
+    console.log('Received job: ' + job.body);
 
     function onTypeset(data) {
       if (!data.errors) {
         ack({svg: data.svg})
       } else {
-        ack({error: data.errors});
+        ack({error: data.errors.join(', ')});
       }
     }
 
