@@ -56,7 +56,8 @@ function mathjaxThread(id) {
         } else {
           ack({error: data.errors.join(', ')});
         }
-        console.info("Processed MathJax job in %dms (thread "+id+")", ms);
+        var end = process.hrtime(start);
+        console.info("Processed MathJax job in %dms (thread "+id+")", Math.round(end[0] * 1000 + end[1] / 1000000));
       }
 
       typeset(job.math, onTypeset);
