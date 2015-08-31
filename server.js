@@ -47,7 +47,8 @@ function mathjaxThread(id) {
     }
 
     function onJob(job, ack) {
-      console.log('Received job: ' + job.math);
+      console.log('Received MathJax job (thread '+id+'): ' + job.math);
+      var start = process.hrtime();
 
       function onTypeset(data) {
         if (!data.errors) {
@@ -55,6 +56,7 @@ function mathjaxThread(id) {
         } else {
           ack({error: data.errors.join(', ')});
         }
+        console.info("Processed MathJax job in %dms (thread "+id+")", ms);
       }
 
       typeset(job.math, onTypeset);
@@ -62,6 +64,6 @@ function mathjaxThread(id) {
   });
 }
 
-for (i = 0; i < 4; i++) {
+for (i = 0; i < 2; i++) {
   mathjaxThread(i+1);
 }
