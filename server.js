@@ -65,6 +65,6 @@ function mathjaxThread(id) {
   });
 }
 
-for (i = 0; i < 2; i++) {
+for (i = 0; i < 1; i++) {
   mathjaxThread(i+1);
 }
