@@ -1,56 +1,67 @@
-var jackrabbit = require('jackrabbit');
-var messageServer = process.env.RABBITMQ_BIGWIG_TX_URL || 'amqp://localhost';
-var queue = jackrabbit(messageServer);
+function mathjaxThread(id) {
+  console.log('Starting MathJax server (thread '+id+')');
+  var jackrabbit = require('jackrabbit');
+  var messageServer = process.env.RABBITMQ_BIGWIG_TX_URL || 'amqp://localhost';
+  var queue = jackrabbit(messageServer);
 
-var mjAPI = require("./lib/mj-single.js").create(0);
+  var mjAPI = require("./lib/mj-single.js").create(0);
 
-var options = {
-  linebreaks: true,
-  dpi: 0,
-  font: "STIX",
-  ex: 8,
-  width: 130,
-  extensions: "color.js"
-};
+  var options = {
+    linebreaks: true,
+    dpi: 0,
+    font: "STIX",
+    ex: 8,
+    width: 130,
+    extensions: "color.js"
+  };
 
-if (options.font === "STIX") options.font = "STIX-Web";
-mjAPI.config({MathJax: {SVG: {font: options.font, blacker: 0}}, extensions: options.extensions});
-mjAPI.start();
+  if (options.font === "STIX") options.font = "STIX-Web";
+  mjAPI.config({MathJax: {SVG: {font: options.font, blacker: 0}}, extensions: options.extensions});
+  mjAPI.start();
 
-if (options.dpi === 0) {options.dpi = options.ex * 16} // pixels properly sized
+  if (options.dpi === 0) {
+    options.dpi = options.ex * 16
+  } // pixels properly sized
 
-function typeset(math, callback) {
-  mjAPI.typeset({
-    math: math,
-    format: "NoDelims",
-    svg: true, dpi: options.dpi,
-    ex: options.ex, width: options.width,
-    linebreaks: options.linebreaks
-  }, callback);
-}
+  function typeset(math, callback) {
+    mjAPI.typeset({
+      math: math,
+      format: "NoDelims",
+      svg: true, dpi: options.dpi,
+      ex: options.ex, width: options.width,
+      linebreaks: options.linebreaks
+    }, callback);
+  }
 
 // Make sure we are fully initialized:
-typeset('$x$', function() {});
+  typeset('$x$', function (data) {
+    console.log('Done initializing MathJax (thread '+id+')');
+  });
 
-queue.on('connected', function() {
-  queue.create('jobs.generatesvg', { prefetch: 0, messageTtl: 1000}, onReady);
+  queue.on('connected', function () {
+    queue.create('jobs.generatesvg', {prefetch: 0, messageTtl: 1000}, onReady);
 
-  function onReady() {
-    queue.handle('jobs.generatesvg', onJob);
-    console.log('Ready for jobs');
-  }
-
-  function onJob(job, ack) {
-    console.log('Received job: ' + job.math);
-
-    function onTypeset(data) {
-      if (!data.errors) {
-        ack({svg: data.svg})
-      } else {
-        ack({error: data.errors.join(', ')});
-      }
+    function onReady() {
+      queue.handle('jobs.generatesvg', onJob);
+      console.log('Connected to messaging server and ready for jobs (thread '+id+')');
     }
 
-    typeset(job.math, onTypeset);
-  }
-});
+    function onJob(job, ack) {
+      console.log('Received job: ' + job.math);
+
+      function onTypeset(data) {
+        if (!data.errors) {
+          ack({svg: data.svg})
+        } else {
+          ack({error: data.errors.join(', ')});
+        }
+      }
+
+      typeset(job.math, onTypeset);
+    }
+  });
+}
+
+for (i = 0; i < 4; i++) {
+  mathjaxThread(i+1);
+}
