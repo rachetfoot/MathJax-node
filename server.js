@@ -3,7 +3,7 @@
 function mathjaxThread(id) {
   console.log('Starting MathJax server (thread '+id+')');
   var jackrabbit = require('jackrabbit');
-  var messageServer = process.env.RABBITMQ_BIGWIG_TX_URL || 'amqp://localhost';
+  var messageServer = process.env.CLOUDAMQP_URL || 'amqp://localhost';
   var queue = jackrabbit(messageServer);
 
   var mjAPI = require("./lib/mj-single.js").create(0);
