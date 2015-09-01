@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 function mathjaxThread(id) {
   console.log('Starting MathJax server (thread '+id+')');
   var jackrabbit = require('jackrabbit');
