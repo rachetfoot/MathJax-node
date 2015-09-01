@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+var threadCount = process.env.MATHJAXTHREADCOUNT || 1;
+
 function mathjaxThread(id) {
   console.log('Starting MathJax server (thread '+id+')');
   var jackrabbit = require('jackrabbit');
@@ -67,6 +69,6 @@ function mathjaxThread(id) {
   });
 }
 
-for (i = 0; i < 1; i++) {
+for (i = 0; i < threadCount; i++) {
   mathjaxThread(i+1);
 }
